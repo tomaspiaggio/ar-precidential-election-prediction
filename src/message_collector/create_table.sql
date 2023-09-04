@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS chat_events
+CREATE TABLE IF NOT EXISTS messages
 (
     name            String,
     type            String,

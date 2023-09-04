@@ -1,0 +1,29 @@
+version: '3'
+# TODO volumes
+services:
+  clickhouse:
+    image: yandex/clickhouse-server
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      - CLICKHOUSE_DB=messages
+      - CLICKHOUSE_USER=clickhouse-user
+      - CLICKHOUSE_PASSWORD=secret
+
+  message-collector:
+    build:
+      context: ./src/message_collector
+    container_name: message-collector
+    depends_on:
+      - clickhouse
+    command: python __main__.py --clickhouse_host=clickhouse --clickhouse_port=9000 --clickhouse_username=clickhouse-user --clickhouse_password=secret
+
+  jupyterlab:
+    image: amalic/jupyterlab
+    container_name: jupyterlab
+    ports: 
+      - "8888:8888"
+    environment: 
+      - PASSWORD="secret"

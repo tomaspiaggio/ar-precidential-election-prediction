@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
         json_data = c.json()
         data = json.loads(json_data)
-        client.insert('messages', data, column_names=[
+        client.insert("messages", data, column_names=[
             "name",
             "type",
             "id",

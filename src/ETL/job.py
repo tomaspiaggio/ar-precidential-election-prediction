@@ -1,24 +1,64 @@
-# from pyspark.sql import SparkSession
-# from pyspark.sql.functions import col
-#
-# # Initialize a SparkSession
-# spark = SparkSession.builder.appName("FilterAndSplit").getOrCreate()
-#
-# # Assuming 'df' is your PySpark DataFrame
-# jxc_words = ["pato", "patricia", "bullrich", "jxc", "macri", "larreta", "pelado", "jorge"]
-# lla_words = ["libertad", "milei", "piparo", "villarruel", "javier", "leon"]
-# k_words = ["cristina", "kirchner", "fernandez", "massa", "sergio", "tomas", "kicillof", "alberto"]
-#
-# jxc_condition = col("message").rlike("|".join(jxc_words))
-# lla_condition = col("message").rlike("|".join(lla_words))
-# k_condition = col("message").rlike("|".join(k_words))
-#
-# jxc_df = df.filter(jxc_condition).drop("message")
-# lla_df = df.filter(lla_condition).drop("message")
-# k_df = df.filter(k_condition).drop("message")
-#
-# # Don't forget to stop the SparkSession when you're done
-# spark.stop()
+from pyspark.sql import SparkSession, Row
+from pyspark.sql.functions import expr, col
+import requests
+
+# Create a Spark session
+spark = SparkSession.builder \
+    .appName("SentimentAnalysis") \
+    .getOrCreate()
+
+# Define the ClickHouse source configuration
+clickhouse_options = {
+    "url": "jdbc:clickhouse://<clickhouse-host>:<clickhouse-port>/<database>",
+    "driver": "ru.yandex.clickhouse.ClickHouseDriver",
+    "dbtable": "<clickhouse-table>",
+    "user": "<username>",
+    "password": "<password>"
+}
+
+# Read data from ClickHouse using readStream
+clickhouse_stream = spark.readStream \
+    .format("jdbc") \
+    .option("url", clickhouse_options["url"]) \
+    .option("driver", clickhouse_options["driver"]) \
+    .option("dbtable", clickhouse_options["dbtable"]) \
+    .option("user", clickhouse_options["user"]) \
+    .option("password", clickhouse_options["password"]) \
+    .load()
+
+# Define a function to make an HTTP call using requests library
+def make_http_call(rows):
+    for row in rows:
+        # Extract the necessary data from the ClickHouse DataFrame
+        message = row.message
+
+        # Make the HTTP call and get the response
+        response = requests.get("sentiment:3000", params={"to_predict": message})
+
+        # Create a new DataFrame with the response and matching ID
+        result_df = spark.createDataFrame([(row.id, row.message, response["score"], response["label"])],
+                                          ["id", "message", "sentiment_score", "sentiment_label"])
+
+        yield result_df
+
+# Use mapPartition to apply the HTTP call function to the ClickHouse stream
+http_result_stream = clickhouse_stream.where(col("is_milei") | col("is_massa") | col("is_bullrich")) \
+    .rdd \
+    .mapPartitions(make_http_call) \
+    .toDF()
+
+# Write the results to a new ClickHouse table
+http_result_stream.writeStream \
+    .format("jdbc") \
+    .option("url", clickhouse_options["url"]) \
+    .option("driver", clickhouse_options["driver"]) \
+    .option("dbtable", "<new-clickhouse-table>") \
+    .option("user", clickhouse_options["user"]) \
+    .option("password", clickhouse_options["password"]) \
+    .start()
+
+# Start the streaming job
+spark.streams.awaitAnyTermination()
 
 
 from pyspark.sql import SparkSession

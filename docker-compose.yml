@@ -13,31 +13,28 @@ services:
       - CLICKHOUSE_PASSWORD=secret
 
   tn-message-collector:
-    build:
-      context: ./src/message_collector
+    image: message_collector:1.0.0
     container_name: tn-message-collector
     depends_on:
       - clickhouse
     command: python __main__.py --clickhouse_host=clickhouse --clickhouse_port=8123 --clickhouse_username=clickhouse-user --clickhouse_password=secret --video-id=HPiv1pzIPRc --stream_name=TN
-    restart: always
+    restart: unless-stopped
 
   c5n-message-collector:
-    build:
-      context: ./src/message_collector
+    image: message_collector:1.0.0
     container_name: c5n-message-collector
     depends_on:
       - clickhouse
     command: python __main__.py --clickhouse_host=clickhouse --clickhouse_port=8123 --clickhouse_username=clickhouse-user --clickhouse_password=secret --video-id=39RJ2lb2irE --stream_name=C5N
-    restart: always
+    restart: unless-stopped
 
   a24-message-collector:
-    build:
-      context: ./src/message_collector
+    image: message_collector:1.0.0
     container_name: a24-message-collector
     depends_on:
       - clickhouse
     command: python __main__.py --clickhouse_host=clickhouse --clickhouse_port=8123 --clickhouse_username=clickhouse-user --clickhouse_password=secret --video-id=QGpHLgRnrx4 --stream_name=A24
-    restart: always
+    restart: unless-stopped
 
   jupyterlab:
     image: amalic/jupyterlab
@@ -46,3 +43,11 @@ services:
       - "8888:8888"
     environment: 
       - PASSWORD=secret
+
+  sentiment:
+    build:
+      context: ./src/models/sentiment
+    container_name: sentiment
+    restart: unless-stopped
+    ports:
+      - "5000:5000"

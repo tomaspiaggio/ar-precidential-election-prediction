@@ -1,0 +1,7 @@
+transformers
+tokenizers
+torch
+torchvision
+sentencepiece
+protobuf
+Flask

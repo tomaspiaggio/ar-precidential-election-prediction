@@ -1,8 +1,12 @@
 version: '3'
-# TODO volumes
 services:
   clickhouse:
     image: yandex/clickhouse-server
+    deploy:
+      resources:
+        limits:
+          cpus: 1
+          memory: 500M
     container_name: clickhouse
     ports:
       - "8123:8123"
@@ -14,6 +18,11 @@ services:
 
   tn-message-collector:
     image: message_collector:1.0.0
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 100M
     container_name: tn-message-collector
     depends_on:
       - clickhouse
@@ -22,6 +31,11 @@ services:
 
   c5n-message-collector:
     image: message_collector:1.0.0
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 100M
     container_name: c5n-message-collector
     depends_on:
       - clickhouse
@@ -30,6 +44,11 @@ services:
 
   a24-message-collector:
     image: message_collector:1.0.0
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 100M
     container_name: a24-message-collector
     depends_on:
       - clickhouse
@@ -38,6 +57,11 @@ services:
 
   jupyterlab:
     image: amalic/jupyterlab
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 1G
     container_name: jupyterlab
     ports: 
       - "8888:8888"
@@ -48,6 +72,12 @@ services:
     build:
       context: ./src/models/sentiment
     container_name: sentiment
+    restart: unless-stopped
+
+  embedding:
+    build:
+      context: ./src/models/embedding
+    container_name: embedding
     restart: unless-stopped
     ports:
       - "5000:5000"

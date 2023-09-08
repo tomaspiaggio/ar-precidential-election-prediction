@@ -1,0 +1,6 @@
+tensorflow
+tensorflow_text
+tensorflow_hub
+numpy==1.22.1
+tqdm
+Flask
